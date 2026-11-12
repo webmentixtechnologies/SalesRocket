@@ -404,7 +404,10 @@
       linkedinUrl: url,
       slug: slug,
       status: 'No status',
-      note: ''
+      note: '',
+      extractedPhone: scrapedData?.phone || '',
+      extractedEmail: scrapedData?.email || '',
+      websites: scrapedData?.websites || []
     };
 
     // Generate dynamic intelligence for this exact individual
@@ -448,27 +451,60 @@
     if (!data || !data.name) return;
     const name = data.name.replace(/[\n\r]+.*$/, '').trim();
     const initials = name.split(/\s+/).map(w => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || 'P';
+    const slug = data.slug || (url ? (url.match(/linkedin\.com\/in\/([^\/\?#]+)/) || [])[1] : '') || '';
 
-    if (currentProfile) {
+    if (!currentProfile) {
+      currentProfile = {
+        name: name,
+        avatar: initials,
+        role: data.role || 'Professional Profile',
+        company: data.company || '',
+        location: data.location || 'India',
+        linkedinUrl: url || data.url || ('https://www.linkedin.com/in/' + (slug || 'profile') + '/'),
+        slug: slug,
+        status: 'No status',
+        note: ''
+      };
+    } else {
       currentProfile.name = name;
       currentProfile.avatar = initials;
+      if (slug) currentProfile.slug = slug;
+      if (url) currentProfile.linkedinUrl = url;
       if (data.role) currentProfile.role = data.role;
       if (data.company) currentProfile.company = data.company;
       if (data.location) currentProfile.location = data.location;
-      
-      // Re-evaluate intelligence with refined DOM fields
-      const intel = generateProfileIntelligence(currentProfile);
-      currentProfile._intel = intel;
-      currentProfile.phone = intel.phone;
-      currentProfile.workEmail = intel.workEmail;
-      currentProfile.personalEmail = intel.personalEmail;
-      currentProfile.din = intel.din;
-      currentProfile.companyDomain = intel.companyDomain;
-      updatePurgeModalTargets();
     }
+    
+    // Assign real extracted fields from page/modal/hidden HTML
+    currentProfile.extractedPhone = data.phone || '';
+    currentProfile.extractedEmail = data.email || '';
+    currentProfile.websites = data.websites || [];
+    currentProfile.phone = '';
+    currentProfile.workEmail = '';
+    currentProfile.personalEmail = '';
+
+    // Re-evaluate intelligence with refined DOM fields
+    const intel = generateProfileIntelligence(currentProfile);
+    currentProfile._intel = intel;
+    currentProfile.phone = intel.phone;
+    currentProfile.workEmail = intel.workEmail;
+    currentProfile.personalEmail = intel.personalEmail;
+    currentProfile.din = intel.din;
+    currentProfile.companyDomain = intel.companyDomain;
+    if (intel.company && !currentProfile.company) currentProfile.company = intel.company;
+    updatePurgeModalTargets();
 
     if (elProfileName) elProfileName.innerText = name;
     if (elProfileAvatar) elProfileAvatar.innerText = initials;
+
+    // If already revealed in this session, update DOM elements immediately
+    const key = currentProfile.slug || currentProfile.linkedinUrl;
+    const revealed = sessionReveals[key];
+    if (revealed) {
+      if (revealed.phone && elValPhone) elValPhone.innerText = currentProfile.phone;
+      if (revealed.workEmail && elValWorkEmail) elValWorkEmail.innerText = currentProfile.workEmail;
+      if (revealed.personalEmail && elValPersonalEmail) elValPersonalEmail.innerText = currentProfile.personalEmail;
+    }
   }
 
   function checkProfileCache(slug, url) {
@@ -621,7 +657,19 @@
     let company = p.company || '';
     const location = p.location || 'India';
 
-    // If company not explicit, parse from role headline (e.g. "@ Nyara AI", "at Webmentix")
+    // 1. STRICT REAL DATA FIRST: If phone was extracted from page/modal/hidden tags, USE IT!
+    let phone = p.extractedPhone || '';
+    let rawExtractedEmail = p.extractedEmail || '';
+    let workEmail = p.extractedWorkEmail || '';
+    let personalEmail = p.extractedPersonalEmail || '';
+
+    // If company not explicit, parse from role headline or website
+    if (p.websites && p.websites.length && !company) {
+      try {
+        const u = new URL(p.websites[0].startsWith('http') ? p.websites[0] : 'https://' + p.websites[0]);
+        company = u.hostname.replace(/^www\./, '').split('.')[0];
+      } catch (_) {}
+    }
     if (!company && role) {
       const m = role.match(/[@|at]\s+([^|•·\n,]+)/i);
       if (m) company = m[1].trim();
@@ -636,40 +684,58 @@
 
     // Derive company domain
     let compDomain = '';
-    const cClean = company.toLowerCase().replace(/[^a-z0-9]/g, '');
-    if (cClean.includes('nyara')) compDomain = 'nyara.ai';
-    else if (cClean.includes('webmentix')) compDomain = 'webmentix.com';
-    else if (cClean.includes('principal')) compDomain = 'principal.com';
-    else if (cClean.includes('headsupfortails') || cClean.includes('barkyard')) compDomain = 'headsupfortails.com';
-    else if (cClean.includes('citadel')) compDomain = 'citadelvalue.com';
-    else compDomain = `${cClean || 'company'}.com`;
-
-    // Derive work email
-    let workEmail = '';
-    if (lastName && lastName !== firstName) {
-      workEmail = `${firstName}.${lastName}@${compDomain}`;
-    } else {
-      workEmail = `${firstName}@${compDomain}`;
+    if (p.websites && p.websites.length) {
+      try {
+        const u = new URL(p.websites[0].startsWith('http') ? p.websites[0] : 'https://' + p.websites[0]);
+        compDomain = u.hostname.replace(/^www\./, '');
+      } catch (_) {}
+    }
+    if (!compDomain) {
+      const cClean = company.toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (cClean.includes('nyara')) compDomain = 'nyara.ai';
+      else if (cClean.includes('webmentix')) compDomain = 'webmentix.com';
+      else if (cClean.includes('principal')) compDomain = 'principal.com';
+      else if (cClean.includes('headsupfortails') || cClean.includes('barkyard')) compDomain = 'headsupfortails.com';
+      else if (cClean.includes('citadel')) compDomain = 'citadelvalue.com';
+      else compDomain = `${cClean || 'company'}.com`;
     }
 
-    // Derive personal email
-    let personalEmail = '';
-    if (slug && !slug.includes('-') && !slug.includes('.')) {
-      personalEmail = `${slug.toLowerCase()}@gmail.com`;
-    } else if (lastName && lastName !== firstName) {
-      personalEmail = `${firstName}.${lastName}@gmail.com`;
+    // Process extracted email if any
+    if (rawExtractedEmail) {
+      const isPersonal = /@(gmail|yahoo|outlook|hotmail|icloud|live|aol)\.com/i.test(rawExtractedEmail);
+      if (isPersonal) {
+        personalEmail = rawExtractedEmail;
+        if (!workEmail) {
+          workEmail = (lastName && lastName !== firstName) ? `${firstName}.${lastName}@${compDomain}` : `${firstName}@${compDomain}`;
+        }
+      } else {
+        workEmail = rawExtractedEmail;
+        if (!personalEmail) {
+          personalEmail = (slug && !slug.includes('-')) ? `${slug.toLowerCase()}@gmail.com` : (lastName ? `${firstName}.${lastName}@gmail.com` : `${firstName}@gmail.com`);
+        }
+      }
     } else {
-      personalEmail = `${firstName}.connect@gmail.com`;
+      if (!workEmail) {
+        workEmail = (lastName && lastName !== firstName) ? `${firstName}.${lastName}@${compDomain}` : `${firstName}@${compDomain}`;
+      }
+      if (!personalEmail) {
+        personalEmail = (slug && !slug.includes('-')) ? `${slug.toLowerCase()}@gmail.com` : (lastName ? `${firstName}.${lastName}@gmail.com` : `${firstName}@gmail.com`);
+      }
     }
 
-    // Phone derivation
-    let phone = '';
-    if (slug === 'rahulsanon') phone = '019810025583';
-    else if (slug === 'sachinssaxena') phone = '+919810123456';
-    else if (slug.includes('sauravnav')) phone = '+91 98450 67891';
-    else if (slug.includes('dipak')) phone = '+91 98105 54321';
-    else {
-      // Deterministic realistic mobile phone based on slug hash
+    // Format phone
+    if (phone) {
+      // Clean phone string
+      const digits = phone.replace(/[^0-9]/g, '');
+      if (digits.length === 10) {
+        phone = `+91 ${digits.slice(0, 5)} ${digits.slice(5)}`;
+      } else if (digits.length === 12 && digits.startsWith('91')) {
+        phone = `+91 ${digits.slice(2, 7)} ${digits.slice(7)}`;
+      } else if (!phone.startsWith('+')) {
+        phone = `+91 ${phone}`;
+      }
+    } else {
+      // Dynamic realistic mobile phone based on slug hash if not on profile
       let hash = 0;
       for (let i = 0; i < slug.length; i++) hash = (hash * 31 + slug.charCodeAt(i)) % 100000000;
       const isBlr = location.toLowerCase().includes('bengaluru') || location.toLowerCase().includes('karnataka');
@@ -677,7 +743,7 @@
       phone = prefix + String(10000 + (Math.abs(hash) % 90000));
     }
 
-    // MCA DIN if founder, director, co-founder, partner, ceo, md
+    // MCA DIN if founder, director, partner, ceo, cto, md
     let din = '';
     if (/founder|director|partner|ceo|coo|cto|managing/i.test(role) || /founder|director/i.test(name)) {
       if (slug === 'sachinssaxena') din = '09439218';
@@ -1205,6 +1271,10 @@
     // Message listener for simulator mode switching
     window.addEventListener('message', (event) => {
       if (!event.data) return;
+      if (event.data.action === 'PROFILE_UPDATED' && event.data.profile) {
+        applyScrapedProfile(event.data.profile, event.data.url || lastActiveUrl);
+        return;
+      }
       if (event.data.action === 'SET_SCENARIO' || event.data.action === 'SWITCH_MODE') {
         if (event.data.mode === 'company') {
           switchToCompanyMode(event.data.companyName || 'Sales Prospecting AI', event.data.url || 'https://www.zaubacorp.com/sales-prospecting');
@@ -1235,5 +1305,12 @@
     if (!s) return '';
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
+
+  // Public bridge for extensions and testing
+  window.SalesRocket = {
+    applyScrapedProfile,
+    handleActiveUrlChange,
+    getCurrentProfile: () => currentProfile
+  };
 
 })();
