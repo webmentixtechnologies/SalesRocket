@@ -1,6 +1,6 @@
 /**
  * SalesRocket Content Script
- * Scrapes profile information, hidden HTML fields, contact overlay, watches SPA navigation, and injects floating trigger tab
+ * Scrapes profile information, hidden HTML fields, Voyager contact API, watches SPA navigation, and injects floating trigger tab
  */
 
 (function () {
@@ -158,33 +158,46 @@
   // Extract contact info from LinkedIn hidden <code> tags and inline JSON
   function extractContactFromHiddenCodeTags() {
     const res = {};
-    const codeEls = document.querySelectorAll('code');
+    const codeEls = document.querySelectorAll('code, script[type="application/ld+json"], script[type="application/json"]');
     for (const codeEl of codeEls) {
-      let text = codeEl.textContent || '';
-      if (!text) continue;
-      text = text.trim();
+      let raw = codeEl.textContent || '';
+      if (!raw) continue;
+      let text = raw.trim();
       if (text.startsWith('<!--') && text.endsWith('-->')) {
         text = text.slice(4, -3).trim();
       }
-      if (!text.includes('phoneNumbers') && !text.includes('emailAddress') && !text.includes('ProfileContactInfo') && !text.includes('websites')) {
-        continue;
+      if (text.includes('&quot;') || text.includes('&amp;')) {
+        text = text.replace(/&quot;/g, '"').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
       }
+
+      const hasPhone = /number|phone|mobile|tel/i.test(text);
+      const hasEmail = /email|mail/i.test(text);
+      const hasSite = /websites|website|customType/i.test(text);
+
+      if (!hasPhone && !hasEmail && !hasSite) continue;
+
       try {
         const data = JSON.parse(text);
         function searchObj(o) {
           if (!o || typeof o !== 'object') return;
-          if (o.emailAddress && !res.email && typeof o.emailAddress === 'string') {
-            res.email = o.emailAddress.trim();
+          if ((o.emailAddress || o.email || o.primaryEmail) && !res.email) {
+            const em = o.emailAddress || o.email || o.primaryEmail;
+            if (typeof em === 'string' && em.includes('@')) res.email = em.trim();
           }
           if (o.phoneNumbers && Array.isArray(o.phoneNumbers)) {
             for (const p of o.phoneNumbers) {
-              const num = p.number || p.rawNumber;
-              if (num && !res.phone) res.phone = String(num).trim();
+              const num = p.number || p.rawNumber || p.phoneNumber || p;
+              if (num && !res.phone && typeof num === 'string' && num.replace(/[^0-9]/g, '').length >= 7) {
+                res.phone = num.trim();
+              }
             }
           }
-          if (o.phoneNumber && !res.phone) {
-            const num = typeof o.phoneNumber === 'string' ? o.phoneNumber : (o.phoneNumber.number || o.phoneNumber.rawNumber);
-            if (num) res.phone = String(num).trim();
+          if ((o.phoneNumber || o.phone || o.mobileNumber || o.rawNumber) && !res.phone) {
+            const target = o.phoneNumber || o.phone || o.mobileNumber || o.rawNumber;
+            const num = typeof target === 'string' ? target : (target.number || target.rawNumber);
+            if (num && typeof num === 'string' && num.replace(/[^0-9]/g, '').length >= 7) {
+              res.phone = num.trim();
+            }
           }
           if (o.websites && Array.isArray(o.websites) && !res.websites) {
             res.websites = o.websites.map(w => w.url || w).filter(Boolean);
@@ -195,14 +208,14 @@
         }
         searchObj(data);
       } catch (_) {
-        // Regex fallback
         if (!res.email) {
-          const emMatch = text.match(/"emailAddress"\s*:\s*"([^"]+)"/i);
-          if (emMatch) res.email = emMatch[1];
+          const emMatch = text.match(/"(?:emailAddress|email|primaryEmail)"\s*:\s*"([^"]+@[-a-zA-Z0-9.]+)"/i) ||
+                          text.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
+          if (emMatch) res.email = (emMatch[1] || emMatch[0]).trim();
         }
         if (!res.phone) {
-          const phMatch = text.match(/"(?:number|phoneNumber|rawNumber)"\s*:\s*"([^"]+)"/i);
-          if (phMatch) res.phone = phMatch[1];
+          const phMatch = text.match(/"(?:number|phoneNumber|rawNumber|phone|mobile)"\s*:\s*"([+0-9\s()-]{7,25})"/i);
+          if (phMatch) res.phone = phMatch[1].trim();
         }
       }
       if (res.phone && res.email) break;
@@ -219,49 +232,144 @@
     return {};
   }
 
+  // Fetch Voyager Contact API directly using active session cookies
+  async function fetchVoyagerContactInfo(slug) {
+    if (!slug) return null;
+    try {
+      const csrfMatch = document.cookie.match(/JSESSIONID="?([^";]+)"?/);
+      const csrf = csrfMatch ? csrfMatch[1] : '';
+      const headers = {
+        'Accept': 'application/vnd.linkedin.normalized+json+2.1',
+        'X-RestLi-Protocol-Version': '2.0.0'
+      };
+      if (csrf) headers['csrf-token'] = csrf;
+
+      const resp = await fetch(`/voyager/api/identity/profiles/${encodeURIComponent(slug)}/profileContactInfo`, {
+        credentials: 'include',
+        headers: headers
+      });
+      if (resp.ok) {
+        const json = await resp.json();
+        const contact = {};
+        if (json.emailAddress) contact.email = json.emailAddress;
+        if (json.phoneNumbers && json.phoneNumbers[0]) {
+          contact.phone = json.phoneNumbers[0].number || json.phoneNumbers[0].rawNumber;
+        }
+        if (json.websites && Array.isArray(json.websites)) {
+          contact.websites = json.websites.map(w => w.url).filter(Boolean);
+        }
+        return contact;
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  // Trigger silent extraction by opening contact info link and closing it instantly
+  let isExtractingSilently = false;
+  function triggerSilentContactModalExtraction(callback) {
+    if (isExtractingSilently) return;
+    const btn = document.querySelector('#top-card-text-details-contact-info, a[href*="/overlay/contact-info/"], button[aria-label*="contact info" i]');
+    if (!btn) {
+      if (typeof callback === 'function') callback({});
+      return;
+    }
+    isExtractingSilently = true;
+
+    // Create stealth style to prevent modal from flashing on user screen
+    const style = document.createElement('style');
+    style.id = 'sr-stealth-modal-style';
+    style.textContent = `
+      #artdeco-modal-outlet .artdeco-modal,
+      div[role="dialog"].artdeco-modal {
+        opacity: 0 !important;
+        pointer-events: none !important;
+        position: fixed !important;
+        top: -9999px !important;
+      }
+      .artdeco-modal-overlay {
+        display: none !important;
+      }
+    `;
+    document.head.appendChild(style);
+
+    btn.click();
+
+    setTimeout(() => {
+      const modal = document.querySelector('.artdeco-modal, div[role="dialog"]');
+      let extracted = {};
+      if (modal) {
+        extracted = extractContactFromElements(modal);
+        const closeBtn = modal.querySelector('.artdeco-modal__dismiss, [aria-label="Dismiss"], button[data-test-modal-close-btn]');
+        if (closeBtn) closeBtn.click();
+        else {
+          document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', keyCode: 27, bubbles: true }));
+        }
+      }
+
+      setTimeout(() => {
+        style.remove();
+        isExtractingSilently = false;
+      }, 150);
+
+      if (typeof callback === 'function') callback(extracted);
+
+      if (extracted.phone || extracted.email) {
+        const profile = scrapeLinkedIn();
+        if (extracted.phone) profile.phone = extracted.phone;
+        if (extracted.email) profile.email = extracted.email;
+        if (extracted.websites) profile.websites = extracted.websites;
+        safeSendMessage({ action: 'PROFILE_UPDATED', profile, url: window.location.href });
+      }
+    }, 250);
+  }
+
   // Proactive background fetch of contact overlay
   const fetchedSlugs = new Set();
-  function fetchContactOverlayAsync(slug) {
+  async function fetchContactOverlayAsync(slug) {
     if (!slug || fetchedSlugs.has(slug)) return;
     fetchedSlugs.add(slug);
 
-    const overlayUrl = `/in/${slug}/overlay/contact-info/`;
-    fetch(overlayUrl, {
-      credentials: 'include',
-      headers: {
-        'Accept': 'text/html,application/xhtml+xml,application/xml',
-        'X-Requested-With': 'XMLHttpRequest'
-      }
-    })
-      .then(r => r.text())
-      .then(html => {
-        if (!html) return;
+    // 1. Try Voyager API first
+    const voyagerContact = await fetchVoyagerContactInfo(slug);
+    if (voyagerContact && (voyagerContact.phone || voyagerContact.email)) {
+      const profile = scrapeLinkedIn();
+      if (voyagerContact.phone) profile.phone = voyagerContact.phone;
+      if (voyagerContact.email) profile.email = voyagerContact.email;
+      if (voyagerContact.websites) profile.websites = voyagerContact.websites;
+      safeSendMessage({ action: 'PROFILE_UPDATED', profile, url: window.location.href });
+      return;
+    }
+
+    // 2. Try overlay route
+    try {
+      const overlayUrl = `/in/${slug}/overlay/contact-info/`;
+      const r = await fetch(overlayUrl, {
+        credentials: 'include',
+        headers: {
+          'Accept': 'text/html,application/xhtml+xml,application/xml',
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      });
+      const html = await r.text();
+      if (html) {
         const doc = new DOMParser().parseFromString(html, 'text/html');
         const overlayData = extractContactFromElements(doc.body);
-
-        // Check embedded code tags in overlay html
-        const codeTags = doc.querySelectorAll('code');
-        for (const codeEl of codeTags) {
-          let t = (codeEl.textContent || '').trim();
-          if (t.startsWith('<!--') && t.endsWith('-->')) t = t.slice(4, -3).trim();
-          const em = t.match(/"emailAddress"\s*:\s*"([^"]+)"/i);
-          if (em && !overlayData.email) overlayData.email = em[1];
-          const ph = t.match(/"(?:number|phoneNumber|rawNumber)"\s*:\s*"([^"]+)"/i);
-          if (ph && !overlayData.phone) overlayData.phone = ph[1];
-        }
-
-        if (overlayData.phone || overlayData.email || overlayData.websites) {
+        if (overlayData.phone || overlayData.email) {
           const profile = scrapeLinkedIn();
           if (overlayData.phone) profile.phone = overlayData.phone;
           if (overlayData.email) profile.email = overlayData.email;
           if (overlayData.websites && overlayData.websites.length) profile.websites = overlayData.websites;
-          safeSendMessage({ action: 'PROFILE_UPDATED', profile: profile, url: window.location.href });
+          safeSendMessage({ action: 'PROFILE_UPDATED', profile, url: window.location.href });
+          return;
         }
-      })
-      .catch(() => {});
+      }
+    } catch (_) {}
+
+    // 3. Fallback to silent modal extraction
+    triggerSilentContactModalExtraction();
   }
 
-  // Scrape full profile info from LinkedIn DOM, hidden fields & overlays
+  // Scrape full profile info from LinkedIn DOM, right panel, hidden fields & overlays
   function scrapeLinkedIn() {
     let name = '';
     let role = '';
@@ -277,7 +385,6 @@
       name = nameEl.innerText.replace(/[\n\r]+.*$/, '').trim();
     }
 
-    // Fallback to document.title if h1 not ready
     if (!name) {
       let docTitle = document.title || '';
       docTitle = docTitle.replace(/^\(\d+\)\s*/, '');
@@ -298,12 +405,28 @@
                   document.querySelector('.pv-top-card--list-bullet > li');
     if (locEl) location = locEl.innerText.trim();
 
-    const compEl = document.querySelector('.inline-show-more-text--is-collapsed') ||
-                   document.querySelector('[aria-label="Current company"]') ||
-                   document.querySelector('.pv-text-details__right-panel .hoverable-link-text');
-    if (compEl) company = compEl.innerText.trim();
+    // Comprehensive Company Extraction from Top Card Right Panel & DOM
+    const rightPanelItem = document.querySelector('.pv-text-details__right-panel li button span[aria-hidden="true"], .pv-text-details__right-panel li button, .pv-text-details__right-panel li, .pv-text-details__right-panel');
+    if (rightPanelItem) {
+      const text = rightPanelItem.innerText.replace(/[\n\r]+.*$/, '').trim();
+      if (text && !/University|College|School|Institute/i.test(text)) {
+        company = text;
+      }
+    }
 
-    // If company not found from dedicated element, parse from role headline
+    if (!company) {
+      const compLink = document.querySelector('.pv-top-card a[href*="/company/"], main a[href*="/company/"]');
+      if (compLink) {
+        const text = compLink.innerText.replace(/[\n\r]+.*$/, '').trim();
+        if (text) company = text;
+      }
+    }
+
+    if (!company) {
+      const expCompany = document.querySelector('#experience ~ .pvs-list__outer-container span[aria-hidden="true"]');
+      if (expCompany) company = expCompany.innerText.trim();
+    }
+
     if (!company && role) {
       const atMatch = role.match(/[@|at]\s+([^|•·\n,]+)/i);
       if (atMatch) company = atMatch[1].trim();
@@ -321,7 +444,7 @@
     const email = modalData.email || hiddenData.email || pageData.email || '';
     const websites = modalData.websites || hiddenData.websites || pageData.websites || [];
 
-    // If phone or email not yet present in active DOM, trigger async overlay fetch
+    // If phone or email not yet present in active DOM, trigger proactive fetch
     if ((!phone || !email) && slug) {
       fetchContactOverlayAsync(slug);
     }
@@ -401,6 +524,21 @@
       if (req.action === 'SCRAPE_LINKEDIN_PROFILE' || req.action === 'GET_PROFILE') {
         const profile = scrapeLinkedIn();
         sendResponse(profile);
+      }
+      if (req.action === 'DEEP_EXTRACT_CONTACT') {
+        const profile = scrapeLinkedIn();
+        if (profile.phone && profile.email) {
+          sendResponse(profile);
+        } else {
+          // Trigger deep extraction on demand and respond
+          triggerSilentContactModalExtraction((extracted) => {
+            if (extracted.phone) profile.phone = extracted.phone;
+            if (extracted.email) profile.email = extracted.email;
+            if (extracted.websites) profile.websites = extracted.websites;
+            sendResponse(profile);
+          });
+          return true; // asynchronous response
+        }
       }
     });
   }
