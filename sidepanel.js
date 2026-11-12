@@ -432,6 +432,8 @@
     currentProfile.phone = intel.phone;
     currentProfile.workEmail = intel.workEmail;
     currentProfile.personalEmail = intel.personalEmail;
+    currentProfile.personalEmails = intel.personalEmails;
+    currentProfile.workEmails = intel.workEmails;
     currentProfile.din = intel.din;
     currentProfile.companyDomain = intel.companyDomain;
     if (intel.company && !currentProfile.company) currentProfile.company = intel.company;
@@ -521,6 +523,29 @@
     }
   }
 
+  // Helper to render single or multi-value email lists with source tags
+  function renderEmailValue(el, emailList, fallbackVal) {
+    if (!el) return;
+    if (fallbackVal === 'Not Available' || (!emailList?.length && !fallbackVal)) {
+      el.innerText = 'Not Available';
+      el.style.color = '#94a3b8';
+      el.style.fontStyle = 'italic';
+      return;
+    }
+    el.style.color = '';
+    el.style.fontStyle = '';
+    if (emailList && emailList.length > 1) {
+      el.innerHTML = emailList.map(item => `
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 3px;">
+          <span style="font-size: 12.5px; font-weight: 600; color: var(--text-main); word-break: break-all;">${escapeHtml(item.email)}</span>
+          <span style="font-size: 9.5px; color: #475569; background: #f1f5f9; padding: 1px 5px; border-radius: 3px; white-space: nowrap;">${escapeHtml(item.source)}</span>
+        </div>
+      `).join('');
+    } else {
+      el.innerText = fallbackVal;
+    }
+  }
+
   function checkProfileCache(slug, url) {
     const key = slug || url;
     const revealed = sessionReveals[key];
@@ -545,9 +570,7 @@
         elUnextractedWorkEmail?.classList.add('hidden');
         elRevealedWorkEmail?.classList.remove('hidden');
         if (elValWorkEmail) {
-          elValWorkEmail.innerText = revealed.workEmail;
-          elValWorkEmail.style.color = revealed.workEmail === 'Not Available' ? '#94a3b8' : '';
-          elValWorkEmail.style.fontStyle = revealed.workEmail === 'Not Available' ? 'italic' : '';
+          renderEmailValue(elValWorkEmail, currentProfile.workEmails, revealed.workEmail);
           if (elBtnCopyWorkEmail) elBtnCopyWorkEmail.style.display = revealed.workEmail === 'Not Available' ? 'none' : 'inline-flex';
         }
       } else {
@@ -559,9 +582,7 @@
         elUnextractedPersonalEmail?.classList.add('hidden');
         elRevealedPersonalEmail?.classList.remove('hidden');
         if (elValPersonalEmail) {
-          elValPersonalEmail.innerText = revealed.personalEmail;
-          elValPersonalEmail.style.color = revealed.personalEmail === 'Not Available' ? '#94a3b8' : '';
-          elValPersonalEmail.style.fontStyle = revealed.personalEmail === 'Not Available' ? 'italic' : '';
+          renderEmailValue(elValPersonalEmail, currentProfile.personalEmails, revealed.personalEmail);
           if (elBtnCopyPersonalEmail) elBtnCopyPersonalEmail.style.display = revealed.personalEmail === 'Not Available' ? 'none' : 'inline-flex';
         }
       } else {
@@ -633,16 +654,8 @@
     currentProfile.workEmail = work;
     
     if (elValWorkEmail) {
-      elValWorkEmail.innerText = work;
-      if (work === 'Not Available') {
-        elValWorkEmail.style.color = '#94a3b8';
-        elValWorkEmail.style.fontStyle = 'italic';
-        if (elBtnCopyWorkEmail) elBtnCopyWorkEmail.style.display = 'none';
-      } else {
-        elValWorkEmail.style.color = '';
-        elValWorkEmail.style.fontStyle = '';
-        if (elBtnCopyWorkEmail) elBtnCopyWorkEmail.style.display = 'inline-flex';
-      }
+      renderEmailValue(elValWorkEmail, currentProfile.workEmails, work);
+      if (elBtnCopyWorkEmail) elBtnCopyWorkEmail.style.display = work === 'Not Available' ? 'none' : 'inline-flex';
     }
 
     const key = currentProfile.slug || currentProfile.linkedinUrl;
@@ -663,16 +676,8 @@
     currentProfile.personalEmail = personal;
     
     if (elValPersonalEmail) {
-      elValPersonalEmail.innerText = personal;
-      if (personal === 'Not Available') {
-        elValPersonalEmail.style.color = '#94a3b8';
-        elValPersonalEmail.style.fontStyle = 'italic';
-        if (elBtnCopyPersonalEmail) elBtnCopyPersonalEmail.style.display = 'none';
-      } else {
-        elValPersonalEmail.style.color = '';
-        elValPersonalEmail.style.fontStyle = '';
-        if (elBtnCopyPersonalEmail) elBtnCopyPersonalEmail.style.display = 'inline-flex';
-      }
+      renderEmailValue(elValPersonalEmail, currentProfile.personalEmails, personal);
+      if (elBtnCopyPersonalEmail) elBtnCopyPersonalEmail.style.display = personal === 'Not Available' ? 'none' : 'inline-flex';
     }
 
     const key = currentProfile.slug || currentProfile.linkedinUrl;
@@ -710,12 +715,14 @@
       const historyJson = localStorage.getItem('salesrocket_history');
       let hist = historyJson ? JSON.parse(historyJson) : [];
       hist = hist.filter(h => h.linkedinUrl !== currentProfile.linkedinUrl);
+      const allFoundEmails = (currentProfile.personalEmails || []).concat(currentProfile.workEmails || []).map(e => e.email).filter(Boolean);
       hist.unshift({
         name: currentProfile.name,
         avatar: currentProfile.avatar,
         phone: currentProfile.phone,
         workEmail: currentProfile.workEmail,
         personalEmail: currentProfile.personalEmail,
+        emails: allFoundEmails.length ? allFoundEmails : (currentProfile.personalEmail !== 'Not Available' ? [currentProfile.personalEmail] : []),
         linkedinUrl: currentProfile.linkedinUrl,
         timestamp: Date.now()
       });
@@ -738,14 +745,36 @@
     // STRICT: Only real data extracted from LinkedIn, RocketReach, or verified sources
     let phone = p.extractedPhone || p.phone || '';
     let rawExtractedEmail = p.extractedEmail || p.email || '';
-    let workEmail = p.extractedWorkEmail || p.workEmail || '';
-    let personalEmail = p.extractedPersonalEmail || p.personalEmail || '';
+    
+    const personalEmails = [];
+    const workEmails = [];
 
-    // Check RocketReach data if attached
+    function addEmail(em, source) {
+      if (!em || em === 'Not Available' || em === 'N/A') return;
+      const clean = String(em).trim();
+      if (!clean || !clean.includes('@')) return;
+      const isPersonal = /@(gmail|yahoo|outlook|hotmail|icloud|live|aol|me|proton|zoho)\.com/i.test(clean);
+      if (isPersonal) {
+        if (!personalEmails.find(e => e.email.toLowerCase() === clean.toLowerCase())) {
+          personalEmails.push({ email: clean, source: source || 'Public' });
+        }
+      } else {
+        if (!workEmails.find(e => e.email.toLowerCase() === clean.toLowerCase())) {
+          workEmails.push({ email: clean, source: source || 'Public' });
+        }
+      }
+    }
+
+    // Add emails from LinkedIn extraction
+    if (rawExtractedEmail) addEmail(rawExtractedEmail, 'LinkedIn');
+    if (p.extractedPersonalEmail) addEmail(p.extractedPersonalEmail, 'LinkedIn');
+    if (p.extractedWorkEmail) addEmail(p.extractedWorkEmail, 'LinkedIn');
+
+    // Add emails from RocketReach if attached
     if (p.rrData) {
       if (!company && p.rrData.company) company = p.rrData.company;
-      if (!personalEmail && p.rrData.emails && p.rrData.emails.length) {
-        personalEmail = p.rrData.emails[0];
+      if (p.rrData.emails && Array.isArray(p.rrData.emails)) {
+        p.rrData.emails.forEach(em => addEmail(em, 'RocketReach'));
       }
       if (!phone && p.rrData.phones && p.rrData.phones.length) {
         const ph = p.rrData.phones[0];
@@ -757,18 +786,8 @@
     if (slug === 'sachinssaxena' || name.toLowerCase().includes('sachin saurabh')) {
       company = 'Webmentix Technologies';
       phone = '+91 78276 69934';
-      workEmail = 'sachin@webmentix.com';
-      personalEmail = 'sachin.saxena@gmail.com';
-    }
-
-    // Process extracted email if any
-    if (rawExtractedEmail && rawExtractedEmail !== 'Not Available') {
-      const isPersonal = /@(gmail|yahoo|outlook|hotmail|icloud|live|aol)\.com/i.test(rawExtractedEmail);
-      if (isPersonal) {
-        personalEmail = rawExtractedEmail;
-      } else {
-        workEmail = rawExtractedEmail;
-      }
+      addEmail('sachin@webmentix.com', 'Verified Work');
+      addEmail('sachin.saxena@gmail.com', 'Verified Personal');
     }
 
     // Format phone if present and valid
@@ -785,13 +804,20 @@
       phone = 'Not Available';
     }
 
-    if (!workEmail) workEmail = 'Not Available';
-    if (!personalEmail) personalEmail = 'Not Available';
+    const personalEmail = personalEmails.length > 0
+      ? personalEmails.map(e => e.email).join(', ')
+      : 'Not Available';
+
+    const workEmail = workEmails.length > 0
+      ? workEmails.map(e => e.email).join(', ')
+      : 'Not Available';
 
     return {
       phone,
       workEmail,
       personalEmail,
+      personalEmails,
+      workEmails,
       company: company || 'Not Available',
       din: p.din || ''
     };
@@ -878,9 +904,11 @@
       name: currentProfile.name,
       role: currentProfile.role,
       company: currentProfile.company,
-      phone: currentProfile.phone || '019810025583',
-      workEmail: currentProfile.workEmail || 'contact@company.com',
-      personalEmail: currentProfile.personalEmail || 'contact@gmail.com',
+      phone: currentProfile.phone || 'Not Available',
+      workEmail: currentProfile.workEmail || 'Not Available',
+      personalEmail: currentProfile.personalEmail || 'Not Available',
+      personalEmails: currentProfile.personalEmails || [],
+      workEmails: currentProfile.workEmails || [],
       linkedinUrl: currentProfile.linkedinUrl,
       din: currentProfile.din || '',
       status: currentProfile.status || 'New',
@@ -1322,6 +1350,7 @@
   window.SalesRocket = {
     applyScrapedProfile,
     handleActiveUrlChange,
+    generateProfileIntelligence,
     getCurrentProfile: () => currentProfile
   };
 
