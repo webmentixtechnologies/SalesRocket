@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SalesRocket : B2B Phone & Email Intelligence</title>
+  <link rel="stylesheet" href="sidepanel.css">
+</head>
+<body>
+
+  <div class="panel-container" id="panel-root">
+    
+    <!-- Top Navigation Bar (PeakAI Pixel-Perfect) -->
+    <header class="panel-header">
+      <div class="header-brand">
+        <div class="brand-icon-box" title="PeakAI Engine">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="#ffffff">
+            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+          </svg>
+        </div>
+        <span class="brand-name">SalesRocket</span>
+        <span class="brand-ver">v7.7.2</span>
+      </div>
+      <div class="header-credits">
+        <div class="credits-pill">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2.5">
+            <rect x="2" y="4" width="20" height="16" rx="2"/>
+            <line x1="12" y1="8" x2="12" y2="16"/>
+            <line x1="8" y1="12" x2="16" y2="12"/>
+          </svg>
+          <span>Credits:</span>
+          <span class="credits-count" id="credits-count">∞</span>
+        </div>
+        <button class="btn-buy" id="btn-buy">+ Buy</button>
+      </div>
+    </header>
+
+    <!-- SuperAdmin Session Bar -->
+    <div class="user-session-bar" id="user-session-bar">
+      <div class="session-user-info">
+        <span class="user-role-badge" id="user-role-badge">SUPERADMIN</span>
+        <span class="user-email-text" id="user-email-text">sachin.saxena@gmail.com</span>
+      </div>
+      <div>
+        <span class="schema-badge" title="Target PostgreSQL DB Schema">DB: SalesRocket</span>
+      </div>
+    </div>
+
+    <!-- Main Content Body -->
+    <main class="panel-body">
+
+      <!-- ============================================== -->
+      <!-- MODE A: INDIVIDUAL PERSON PROFILE (LinkedIn)   -->
+      <!-- ============================================== -->
+      <div id="section-person-mode">
+        
+        <!-- Profile Identity Card -->
+        <section class="profile-card">
+          <div class="profile-top">
+            <div class="avatar-wrapper">
+              <div class="avatar-circle" id="profile-avatar">SS</div>
+              <span class="presence-dot"></span>
+            </div>
+            <div class="profile-info">
+              <h2 class="profile-name" id="profile-name">Sachin Saurabh Saxena</h2>
+              <div class="profile-status-indicator">
+                <span class="status-pulse"></span>
+                <span class="status-text" id="status-detection-text">Profile detected</span>
+              </div>
+            </div>
+            <div class="status-dropdown-wrapper">
+              <button class="status-dropdown-btn" id="status-dropdown-btn">
+                <span id="current-lead-status">No status</span>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M6 9l6 6 6-6"/>
+                </svg>
+              </button>
+              <div class="status-menu hidden" id="status-menu">
+                <div class="status-item" data-status="No status">No status</div>
+                <div class="status-item" data-status="New">New</div>
+                <div class="status-item" data-status="Contacted">Contacted</div>
+                <div class="status-item" data-status="Interested">Interested</div>
+                <div class="status-item" data-status="Not Interested">Not Interested</div>
+                <div class="status-item" data-status="Closed">Closed</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Note Input Row -->
+          <div class="profile-note-row" id="profile-note-row">
+            <input type="text" class="note-input" id="lead-note-input" placeholder="Add a note... ↵ to save">
+            <button class="btn-note-save" id="btn-note-save">Save</button>
+          </div>
+        </section>
+
+        <!-- Primary Action: Find All (Vibrant Blue, Active) -->
+        <section style="margin-top: 10px;">
+          <button class="btn-find-all" id="btn-find-all">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="#ffffff">
+              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+            </svg>
+            <span>Find All — Phone + Both Emails</span>
+          </button>
+        </section>
+
+        <!-- Discovery Rows Container -->
+        <section class="discovery-rows" id="discovery-rows" style="margin-top: 10px;">
+
+          <!-- Row 1: Direct Phone -->
+          <div class="discovery-card" id="card-phone">
+            <div class="card-unextracted" id="unextracted-phone">
+              <div class="card-left">
+                <span class="icon-circle">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2">
+                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                  </svg>
+                </span>
+                <span class="card-title">Extract Contact</span>
+              </div>
+              <span class="card-arrow">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2">
+                  <path d="M9 18l6-6-6-6"/>
+                </svg>
+              </span>
+            </div>
+
+            <div class="card-revealed hidden" id="revealed-phone">
+              <div class="revealed-top">
+                <span class="revealed-badge">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                  </svg>
+                  <span>DIRECT PHONE</span>
+                </span>
+                <button class="btn-report" title="Report wrong data">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
+                    <line x1="4" y1="22" x2="4" y2="15"/>
+                  </svg>
+                  <span>Report wrong data</span>
+                </button>
+              </div>
+              <div class="revealed-bottom">
+                <span class="revealed-value" id="val-phone">019810025583</span>
+                <div class="revealed-actions">
+                  <button class="action-icon-btn whatsapp" id="btn-whatsapp" title="Chat on WhatsApp">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2z"/>
+                    </svg>
+                  </button>
+                  <button class="action-icon-btn" id="btn-copy-phone" title="Copy phone number">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Row 2: Work Email -->
+          <div class="discovery-card" id="card-work-email">
+            <div class="card-unextracted" id="unextracted-work-email">
+              <div class="card-left">
+                <span class="icon-circle">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2">
+                    <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+                    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+                  </svg>
+                </span>
+                <span class="card-title">Extract Work Email</span>
+              </div>
+              <span class="card-arrow">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2">
+                  <path d="M9 18l6-6-6-6"/>
+                </svg>
+              </span>
+            </div>
+
+            <div class="card-revealed hidden" id="revealed-work-email">
+              <div class="revealed-top">
+                <span class="revealed-badge">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+                    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+                  </svg>
+                  <span>WORK EMAIL</span>
+                </span>
+                <button class="btn-report" title="Report wrong data">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
+                    <line x1="4" y1="22" x2="4" y2="15"/>
+                  </svg>
+                  <span>Report wrong data</span>
+                </button>
+              </div>
+              <div class="revealed-bottom">
+                <span class="revealed-value" id="val-work-email">sachin@webmentix.com</span>
+                <div class="revealed-actions">
+                  <button class="action-icon-btn" id="btn-copy-work-email" title="Copy work email">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Row 3: Personal / Secondary Email -->
+          <div class="discovery-card" id="card-personal-email">
+            <div class="card-unextracted" id="unextracted-personal-email">
+              <div class="card-left">
+                <span class="icon-circle">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2">
+                    <rect x="2" y="4" width="20" height="16" rx="2"/>
+                    <path d="M22 7l-10 6L2 7"/>
+                  </svg>
+                </span>
+                <span class="card-title">Extract Secondary Email</span>
+              </div>
+              <span class="card-arrow">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2">
+                  <path d="M9 18l6-6-6-6"/>
+                </svg>
+              </span>
+            </div>
+
+            <div class="card-revealed hidden" id="revealed-personal-email">
+              <div class="revealed-top">
+                <span class="revealed-badge">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <rect x="2" y="4" width="20" height="16" rx="2"/>
+                    <path d="M22 7l-10 6L2 7"/>
+                  </svg>
+                  <span>PERSONAL EMAIL</span>
+                </span>
+                <button class="btn-report" title="Report wrong data">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
+                    <line x1="4" y1="22" x2="4" y2="15"/>
+                  </svg>
+                  <span>Report wrong data</span>
+                </button>
+              </div>
+              <div class="revealed-bottom">
+                <span class="revealed-value" id="val-personal-email">sachin.saxena@gmail.com</span>
+                <div class="revealed-actions">
+                  <button class="action-icon-btn" id="btn-copy-personal-email" title="Copy personal email">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- Save to Contacts Button -->
+        <section class="action-save-contacts hidden" id="section-save-contacts" style="margin-top: 10px;">
+          <button class="btn-save-contacts" id="btn-save-contacts">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+              <polyline points="17 21 17 13 7 13 7 21"/>
+              <polyline points="7 3 7 8 15 8"/>
+            </svg>
+            <span id="save-contacts-label">Save to Contacts</span>
+          </button>
+        </section>
+
+        <!-- Admin Controls Section (Visible for sachin.saxena@gmail.com) -->
+        <section class="admin-control-section" id="admin-control-section" style="margin-top: 10px;">
+          <div class="admin-badge-strip">
+            <span class="admin-tag">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              </svg>
+              Admin Controls
+            </span>
+            <span style="font-size: 10px; color: #9F1239; font-weight: 600;">SalesRocket.crm_leads</span>
+          </div>
+
+          <button class="btn-purge-lead" id="btn-purge-lead" title="Purge key individual data directly from SalesRocket.crm_leads table in PostgreSQL">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              <line x1="10" y1="11" x2="10" y2="17"></line>
+              <line x1="14" y1="11" x2="14" y2="17"></line>
+            </svg>
+            <span id="purge-button-label">Purge Key Information from DB</span>
+          </button>
+        </section>
+
+        <!-- Promo Banner (PeakAI Style) -->
+        <section class="promo-card" id="promo-banner">
+          <div class="promo-left">
+            <span style="font-size: 18px;">🎁</span>
+            <div>
+              <div class="promo-title">Get 20 free credits</div>
+              <div class="promo-sub">Leave a quick review on G2</div>
+            </div>
+          </div>
+          <button class="btn-rate" id="btn-rate">Rate &rarr;</button>
+        </section>
+
+      </div>
+
+      <!-- ======================================================= -->
+      <!-- MODE B: COMPANY DIRECTORS (Zaubacorp / Registry)       -->
+      <!-- ======================================================= -->
+      <div id="section-company-mode" class="hidden">
+        
+        <section class="profile-card">
+          <div class="profile-top">
+            <div class="avatar-wrapper">
+              <div class="avatar-circle" id="company-avatar">SP</div>
+              <span class="presence-dot"></span>
+            </div>
+            <div class="profile-info">
+              <h2 class="profile-name" id="company-name">Sales Prospecting AI</h2>
+              <div class="profile-status-indicator">
+                <span class="status-pulse"></span>
+                <span class="status-text" id="company-status-text">Company page detected</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Extract Directors CTA -->
+        <div class="discovery-card" id="card-extract-directors-action" style="margin-top: 10px;">
+          <div class="card-unextracted" id="btn-trigger-extract-directors">
+            <div class="card-left">
+              <span class="icon-circle">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2">
+                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                  <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                </svg>
+              </span>
+              <span class="card-title">Extract Directors from this page</span>
+            </div>
+            <span class="card-arrow">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2">
+                <path d="M9 18l6-6-6-6"/>
+              </svg>
+            </span>
+          </div>
+        </div>
+
+        <!-- Scanning Card (Spinning state) -->
+        <div class="discovery-card hidden" id="card-scanning-directors" style="margin-top: 10px; padding: 24px 16px; text-align: center;">
+          <div style="display: flex; justify-content: center; margin-bottom: 12px;">
+            <svg class="spin" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2.5">
+              <circle cx="12" cy="12" r="10" stroke-opacity="0.25"/>
+              <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div style="font-weight: 600; color: #111827; font-size: 13px;">Scanning this page for directors...</div>
+          <div style="font-size: 11.5px; color: #64748B; margin-top: 4px;">This can take up to 30 seconds</div>
+        </div>
+
+        <!-- Directors Results Container -->
+        <div class="hidden" id="container-directors-results" style="margin-top: 10px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+            <span style="font-size: 12px; font-weight: 600; color: #111827;" id="directors-count-text">2 Directors Identified</span>
+            <button id="btn-save-all-directors" style="background: none; border: none; color: #2563EB; font-size: 11px; font-weight: 600; cursor: pointer;">Save All</button>
+          </div>
+          <div id="directors-list-items" style="display: flex; flex-direction: column; gap: 8px;">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+
+      </div>
+
+    </main>
+
+    <!-- Pinned Bottom Bar -->
+    <footer class="panel-footer">
+      <div class="footer-left" id="btn-open-history">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <polyline points="12 6 12 12 16 14"/>
+        </svg>
+        <span>History</span>
+      </div>
+      <div class="footer-right">
+        <button class="footer-icon-btn" id="btn-share" title="Share link">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="18" cy="5" r="3"/>
+            <circle cx="6" cy="12" r="3"/>
+            <circle cx="18" cy="19" r="3"/>
+            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+          </svg>
+        </button>
+        <button class="footer-icon-btn" id="btn-open-settings" title="Settings">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
+      </div>
+    </footer>
+
+    <!-- ============================================== -->
+    <!-- HISTORY MODAL (EXACT 100% REPLICA OF PEAKAI)   -->
+    <!-- ============================================== -->
+    <div class="history-modal-overlay hidden" id="modal-history">
+      <div class="history-modal-container">
+        
+        <!-- Header -->
+        <div class="history-header">
+          <div class="history-header-left">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2.5">
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+              <path d="M3 3v5h5"/>
+              <path d="M12 7v5l4 2"/>
+            </svg>
+            <span class="history-title">Your History</span>
+          </div>
+          <div class="history-header-right">
+            <button class="btn-history-dashboard" id="btn-history-dashboard">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="7" height="9"/>
+                <rect x="14" y="3" width="7" height="5"/>
+                <rect x="14" y="12" width="7" height="9"/>
+                <rect x="3" y="16" width="7" height="5"/>
+              </svg>
+              <span>Dashboard</span>
+            </button>
+            <button class="btn-history-close" id="btn-close-history">&times;</button>
+          </div>
+        </div>
+
+        <!-- Scrollable Cards List -->
+        <div class="history-list-scroll" id="history-list-items">
+          <!-- Populated dynamically with exact PeakAI card structure -->
+        </div>
+
+        <!-- Footer -->
+        <div class="history-footer">
+          <span id="history-total-count">2 profiles cached</span>
+          <button class="btn-clear-history" id="btn-clear-history">Clear all</button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Purge Confirmation Modal -->
+    <div class="history-modal-overlay hidden" id="modal-purge-confirm" style="align-items: center;">
+      <div class="purge-modal-card">
+        <div class="history-header" style="background: #FFF5F5;">
+          <div class="history-header-left">
+            <span style="color: #BE123C; font-weight: 700; font-size: 14px;">⚠️ Purge Individual Data</span>
+          </div>
+          <button class="btn-history-close" id="btn-close-purge-modal">&times;</button>
+        </div>
+
+        <div style="padding: 14px 16px;">
+          <div class="purge-warning-box">
+            <strong>Irreversible Admin Action</strong>
+            <p>You are authenticated as <strong>sachin.saxena@gmail.com</strong>. This will permanently delete records from PostgreSQL:</p>
+            <ul>
+              <li><span>Individual:</span> <strong id="purge-target-name">Sachin Saurabh Saxena</strong></li>
+              <li><span>Phone:</span> <code id="purge-target-phone">N/A</code></li>
+              <li><span>Work Email:</span> <code id="purge-target-work-email">sachin@webmentix.com</code></li>
+              <li><span>Personal Email:</span> <code id="purge-target-personal-email">sachin.saxena@gmail.com</code></li>
+              <li><span>DIN:</span> <code id="purge-target-din">09439218</code></li>
+              <li><span>Target:</span> <code>"SalesRocket".crm_leads</code></li>
+            </ul>
+          </div>
+
+          <div style="display: flex; gap: 8px; margin-top: 14px; justify-content: flex-end;">
+            <button style="background: #F1F5F9; border: 1px solid #CBD5E1; color: #475569; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;" id="btn-cancel-purge">Cancel</button>
+            <button style="background: #BE123C; border: none; color: #fff; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;" id="btn-confirm-purge">Confirm DB Purge</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="history-modal-overlay hidden" id="modal-settings" style="align-items: center;">
+      <div class="settings-modal-card">
+        <div class="history-header">
+          <span style="font-weight: 600; font-size: 15px; color: #111827;">Settings</span>
+          <button class="btn-history-close" id="btn-close-settings">&times;</button>
+        </div>
+
+        <div style="padding: 14px 16px;">
+          <div class="settings-row">
+            <div>
+              <div style="font-weight: 500; font-size: 12.5px; color: #111827;">Auto-open on LinkedIn</div>
+              <div style="font-size: 10.5px; color: #64748B;">Open sidebar automatically</div>
+            </div>
+            <label class="ios-switch">
+              <input type="checkbox" id="toggle-auto-linkedin">
+              <span class="ios-slider"></span>
+            </label>
+          </div>
+
+          <div class="settings-row">
+            <div>
+              <div style="font-weight: 500; font-size: 12.5px; color: #111827;">Auto-open on Zaubacorp</div>
+              <div style="font-size: 10.5px; color: #64748B;">Open sidebar automatically</div>
+            </div>
+            <label class="ios-switch">
+              <input type="checkbox" id="toggle-auto-zaubacorp">
+              <span class="ios-slider"></span>
+            </label>
+          </div>
+
+          <div class="settings-row">
+            <div>
+              <div style="font-weight: 500; font-size: 12.5px; color: #111827;">Notes on LinkedIn</div>
+              <div style="font-size: 10.5px; color: #64748B;">Show the notes &amp; follow-up panel</div>
+            </div>
+            <label class="ios-switch">
+              <input type="checkbox" id="toggle-notes-panel" checked>
+              <span class="ios-slider"></span>
+            </label>
+          </div>
+
+          <div style="margin-top: 10px;">
+            <div style="font-size: 11px; font-weight: 600; color: #111827;">What should 'Find All' fetch?</div>
+            <div style="font-size: 10px; color: #64748B;">Pick any combination - skip what you don't need</div>
+            <div class="fetch-pill-group">
+              <div class="fetch-pill active" data-type="phone">✓ Phone</div>
+              <div class="fetch-pill active" data-type="work">✓ Work</div>
+              <div class="fetch-pill active" data-type="personal">✓ Personal</div>
+            </div>
+          </div>
+
+          <div style="margin-top: 12px; display: flex; align-items: center; justify-content: space-between;">
+            <div>
+              <div style="font-size: 11.5px; font-weight: 500; color: #111827;">Zoom Level</div>
+              <div style="font-size: 10px; color: #64748B;">Adjust text &amp; UI size</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <button id="btn-zoom-minus" style="width: 24px; height: 24px; border: 1px solid #CBD5E1; background: #fff; border-radius: 4px; font-weight: 700; cursor: pointer;">-</button>
+              <span id="zoom-val-text" style="font-size: 12px; font-weight: 600;">100%</span>
+              <button id="btn-zoom-plus" style="width: 24px; height: 24px; border: 1px solid #CBD5E1; background: #fff; border-radius: 4px; font-weight: 700; cursor: pointer;">+</button>
+            </div>
+          </div>
+
+          <button id="btn-save-settings" style="margin-top: 14px; width: 100%; background: #2563EB; color: #fff; border: none; padding: 9px; border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer;">✓ Save Settings</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Referral / Affiliate Modal (PeakAI Exact Replica) -->
+    <div class="history-modal-overlay hidden" id="modal-referral" style="align-items: center;">
+      <div class="referral-modal-card">
+        <button class="btn-history-close referral-close" id="btn-close-referral">&times;</button>
+        <div class="referral-icon-circle">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5">
+            <line x1="12" y1="1" x2="12" y2="23"/>
+            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+          </svg>
+        </div>
+        <h3 class="referral-title">Earn 15% Commission</h3>
+        <p class="referral-subtitle">Every time someone you refer subscribes</p>
+        
+        <div class="referral-steps-row">
+          <div class="referral-step">
+            <div class="step-circle">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2">
+                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
+                <polyline points="16 6 12 2 8 6"/>
+                <line x1="12" y1="2" x2="12" y2="15"/>
+              </svg>
+            </div>
+            <span>Share link</span>
+          </div>
+          <div class="step-connector"></div>
+          <div class="referral-step">
+            <div class="step-circle">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                <circle cx="8.5" cy="7" r="4"/>
+                <line x1="20" y1="8" x2="20" y2="14"/>
+                <line x1="23" y1="11" x2="17" y2="11"/>
+              </svg>
+            </div>
+            <span>Friend joins</span>
+          </div>
+          <div class="step-connector"></div>
+          <div class="referral-step">
+            <div class="step-circle">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 6v12M15 9.5a2.5 2.5 0 0 0-5 0c0 2 3 2 3 4a2.5 2.5 0 0 1-5 0"/>
+              </svg>
+            </div>
+            <span>You earn!</span>
+          </div>
+        </div>
+
+        <div class="referral-input-box">
+          <input type="text" readonly value="https://chromewebstore.google.com/detail/salesrocket-lead-finder/eignakj..." id="referral-link-input">
+          <button class="btn-copy-ref" id="btn-copy-ref">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            </svg>
+            <span>Copy</span>
+          </button>
+        </div>
+
+        <div class="referral-divider">
+          <span>SHARE VIA</span>
+        </div>
+
+        <div class="referral-share-buttons">
+          <button class="share-channel-btn" id="share-wa" title="WhatsApp">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="#25D366">
+              <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2z"/>
+            </svg>
+            <span>WhatsApp</span>
+          </button>
+          <button class="share-channel-btn" id="share-li" title="LinkedIn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="#0A66C2">
+              <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/>
+            </svg>
+            <span>LinkedIn</span>
+          </button>
+          <button class="share-channel-btn" id="share-x" title="X (Twitter)">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="#000000">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+            </svg>
+            <span>Twitter</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast-notification hidden" id="toast-notif"></div>
+
+  </div>
+
+  <script src="sidepanel.js"></script>
+</body>
+</html>

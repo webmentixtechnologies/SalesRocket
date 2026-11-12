@@ -1,0 +1,48 @@
+{
+  "manifest_version": 3,
+  "name": "SalesRocket : Instant B2B Phone & Email Intelligence",
+  "short_name": "SalesRocket",
+  "version": "7.7.2",
+  "description": "Instant B2B direct dials, mobile numbers, and verified work/personal emails from LinkedIn and Zaubacorp profiles by SalesRocket.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_title": "Open SalesRocket"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "permissions": [
+    "tabs",
+    "windows",
+    "storage",
+    "activeTab",
+    "clipboardWrite",
+    "scripting",
+    "sidePanel",
+    "contextMenus"
+  ],
+  "host_permissions": [
+    "https://*.linkedin.com/*",
+    "https://*.zaubacorp.com/*",
+    "https://*.datorra.in/*",
+    "https://*.tofler.in/*",
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.linkedin.com/*",
+        "https://*.zaubacorp.com/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
