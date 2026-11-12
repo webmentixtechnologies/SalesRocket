@@ -39,9 +39,12 @@
     {
       "matches": [
         "https://*.linkedin.com/*",
-        "https://*.zaubacorp.com/*"
+        "https://*.zaubacorp.com/*",
+        "https://*.rocketreach.co/*"
       ],
-      "js": ["content.js"],
+      "js": [
+        "content.js"
+      ],
       "run_at": "document_idle"
     }
   ]

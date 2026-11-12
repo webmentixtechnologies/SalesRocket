@@ -462,9 +462,83 @@
     };
   }
 
+
+  // RocketReach profile & contacts scraper
+  function scrapeRocketReach() {
+    if (!window.location.host.includes('rocketreach.co')) return null;
+
+    let name = '';
+    const nameEl = document.querySelector('.rr-search-result-name, h3.name, .profile-name, h1, a[href*="/person/"]');
+    if (nameEl) name = nameEl.innerText.replace(/[\n\r]+.*$/, '').trim();
+
+    let company = '';
+    let role = '';
+    const roleEl = document.querySelector('.job-title, .rr-search-result-title, .title');
+    if (roleEl) role = roleEl.innerText.trim();
+    const compEl = document.querySelector('.company-name, .rr-search-result-company, a[href*="/companies/"], a[href*="/company/"]');
+    if (compEl) company = compEl.innerText.trim();
+
+    const emails = [];
+    const mailLinks = document.querySelectorAll('a[href^="mailto:"]');
+    for (const a of mailLinks) {
+      const em = a.getAttribute('href').replace(/^mailto:/i, '').split('?')[0].trim();
+      if (em && !emails.includes(em)) emails.push(em);
+    }
+    const allText = document.body ? (document.body.innerText || '') : '';
+    const emailMatches = allText.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g) || [];
+    for (const em of emailMatches) {
+      if (!emails.includes(em) && !/rocketreach\.co|sentry\.io|w3\.org/i.test(em)) {
+        emails.push(em);
+      }
+    }
+
+    const phones = [];
+    const telLinks = document.querySelectorAll('a[href^="tel:"]');
+    for (const a of telLinks) {
+      const ph = a.getAttribute('href').replace(/^tel:/i, '').trim();
+      if (ph && !phones.includes(ph)) phones.push(ph);
+    }
+    const phoneMatches = allText.match(/(?:\+1|\+91)[-\s]?(?:\d{3}[-\s]?\d{3}[-\s]?[0-9X]{4})/g) || [];
+    for (const ph of phoneMatches) {
+      if (!phones.includes(ph)) phones.push(ph);
+    }
+
+    let linkedinUrl = '';
+    const liLink = document.querySelector('a[href*="linkedin.com/in/"]');
+    if (liLink) linkedinUrl = liLink.href;
+    const slug = linkedinUrl ? (linkedinUrl.match(/linkedin\.com\/in\/([^\/\?#]+)/) || [])[1] : '';
+
+    const payload = {
+      source: 'rocketreach',
+      name,
+      company,
+      role,
+      emails,
+      phones,
+      linkedinUrl,
+      slug
+    };
+
+    if (isExtensionValid() && typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+      const cleanN = name.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const storageObj = {};
+      if (slug) storageObj['rr_' + slug] = payload;
+      if (cleanN) storageObj['rr_name_' + cleanN] = payload;
+      chrome.storage.local.set(storageObj, () => {});
+    }
+
+    return payload;
+  }
+
   // SPA navigation detection
   let lastUrl = window.location.href;
   function notifyChange() {
+    if (!isExtensionValid()) return;
+    if (window.location.host.includes('rocketreach.co')) {
+      const rr = scrapeRocketReach();
+      if (rr) safeSendMessage({ action: 'ROCKETREACH_UPDATED', data: rr });
+      return;
+    }
     if (!isExtensionValid()) return;
     const currentUrl = window.location.href;
     const profile = scrapeLinkedIn();

@@ -394,7 +394,6 @@
   function setProfileHeader(name, url, slug, scrapedData) {
     const initials = name.split(/\s+/).map(w => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || 'P';
     
-    // Always start fresh for every profile
     currentProfile = {
       name: name,
       avatar: initials,
@@ -410,7 +409,24 @@
       websites: scrapedData?.websites || []
     };
 
-    // Generate dynamic intelligence for this exact individual
+    // Check if we have RocketReach data cached for this profile
+    if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+      const cleanN = name.toLowerCase().replace(/[^a-z0-9]/g, '');
+      chrome.storage.local.get(['rr_' + slug, 'rr_name_' + cleanN], (res) => {
+        const rr = res && (res['rr_' + slug] || res['rr_name_' + cleanN]);
+        if (rr) {
+          currentProfile.rrData = rr;
+          const intel = generateProfileIntelligence(currentProfile);
+          currentProfile._intel = intel;
+          currentProfile.phone = intel.phone;
+          currentProfile.workEmail = intel.workEmail;
+          currentProfile.personalEmail = intel.personalEmail;
+          updatePurgeModalTargets();
+          checkProfileCache(slug, url);
+        }
+      });
+    }
+
     const intel = generateProfileIntelligence(currentProfile);
     currentProfile._intel = intel;
     currentProfile.phone = intel.phone;
@@ -425,10 +441,7 @@
     if (elStatusDetectionText) elStatusDetectionText.innerText = 'Profile detected';
     if (elCurrentLeadStatus) elCurrentLeadStatus.innerText = 'No status';
 
-    // Update purge modal fields to target this specific profile
     updatePurgeModalTargets();
-
-    // MANDATORY RULE: ALL THREE FIELDS ARE INITIALLY HIDDEN
     checkProfileCache(slug, url);
   }
 
@@ -479,6 +492,7 @@
     currentProfile.extractedPhone = data.phone || '';
     currentProfile.extractedEmail = data.email || '';
     currentProfile.websites = data.websites || [];
+    if (data.rrData) currentProfile.rrData = data.rrData;
     currentProfile.phone = '';
     currentProfile.workEmail = '';
     currentProfile.personalEmail = '';
@@ -508,7 +522,6 @@
   }
 
   function checkProfileCache(slug, url) {
-    // Only reveal fields if user ALREADY clicked reveal for this exact profile in this session
     const key = slug || url;
     const revealed = sessionReveals[key];
 
@@ -516,7 +529,13 @@
       if (revealed.phone) {
         elUnextractedPhone?.classList.add('hidden');
         elRevealedPhone?.classList.remove('hidden');
-        if (elValPhone) elValPhone.innerText = revealed.phone;
+        if (elValPhone) {
+          elValPhone.innerText = revealed.phone;
+          elValPhone.style.color = revealed.phone === 'Not Available' ? '#94a3b8' : '';
+          elValPhone.style.fontStyle = revealed.phone === 'Not Available' ? 'italic' : '';
+          if (elBtnWhatsapp) elBtnWhatsapp.style.display = revealed.phone === 'Not Available' ? 'none' : 'inline-flex';
+          if (elBtnCopyPhone) elBtnCopyPhone.style.display = revealed.phone === 'Not Available' ? 'none' : 'inline-flex';
+        }
       } else {
         elUnextractedPhone?.classList.remove('hidden');
         elRevealedPhone?.classList.add('hidden');
@@ -525,7 +544,12 @@
       if (revealed.workEmail) {
         elUnextractedWorkEmail?.classList.add('hidden');
         elRevealedWorkEmail?.classList.remove('hidden');
-        if (elValWorkEmail) elValWorkEmail.innerText = revealed.workEmail;
+        if (elValWorkEmail) {
+          elValWorkEmail.innerText = revealed.workEmail;
+          elValWorkEmail.style.color = revealed.workEmail === 'Not Available' ? '#94a3b8' : '';
+          elValWorkEmail.style.fontStyle = revealed.workEmail === 'Not Available' ? 'italic' : '';
+          if (elBtnCopyWorkEmail) elBtnCopyWorkEmail.style.display = revealed.workEmail === 'Not Available' ? 'none' : 'inline-flex';
+        }
       } else {
         elUnextractedWorkEmail?.classList.remove('hidden');
         elRevealedWorkEmail?.classList.add('hidden');
@@ -534,7 +558,12 @@
       if (revealed.personalEmail) {
         elUnextractedPersonalEmail?.classList.add('hidden');
         elRevealedPersonalEmail?.classList.remove('hidden');
-        if (elValPersonalEmail) elValPersonalEmail.innerText = revealed.personalEmail;
+        if (elValPersonalEmail) {
+          elValPersonalEmail.innerText = revealed.personalEmail;
+          elValPersonalEmail.style.color = revealed.personalEmail === 'Not Available' ? '#94a3b8' : '';
+          elValPersonalEmail.style.fontStyle = revealed.personalEmail === 'Not Available' ? 'italic' : '';
+          if (elBtnCopyPersonalEmail) elBtnCopyPersonalEmail.style.display = revealed.personalEmail === 'Not Available' ? 'none' : 'inline-flex';
+        }
       } else {
         elUnextractedPersonalEmail?.classList.remove('hidden');
         elRevealedPersonalEmail?.classList.add('hidden');
@@ -546,7 +575,6 @@
       return;
     }
 
-    // MANDATORY: Never static, always hidden until user explicitly clicks Find All
     resetPersonRows();
   }
 
@@ -569,9 +597,23 @@
     elUnextractedPhone?.classList.add('hidden');
     elRevealedPhone?.classList.remove('hidden');
 
-    const phone = currentProfile.phone || (currentProfile._intel && currentProfile._intel.phone) || generateSimulatedPhone(currentProfile.name);
+    const phone = currentProfile.phone || (currentProfile._intel && currentProfile._intel.phone) || 'Not Available';
     currentProfile.phone = phone;
-    if (elValPhone) elValPhone.innerText = phone;
+    
+    if (elValPhone) {
+      elValPhone.innerText = phone;
+      if (phone === 'Not Available') {
+        elValPhone.style.color = '#94a3b8';
+        elValPhone.style.fontStyle = 'italic';
+        if (elBtnWhatsapp) elBtnWhatsapp.style.display = 'none';
+        if (elBtnCopyPhone) elBtnCopyPhone.style.display = 'none';
+      } else {
+        elValPhone.style.color = '';
+        elValPhone.style.fontStyle = '';
+        if (elBtnWhatsapp) elBtnWhatsapp.style.display = 'inline-flex';
+        if (elBtnCopyPhone) elBtnCopyPhone.style.display = 'inline-flex';
+      }
+    }
 
     const key = currentProfile.slug || currentProfile.linkedinUrl;
     if (!sessionReveals[key]) sessionReveals[key] = {};
@@ -579,7 +621,7 @@
 
     checkShowSaveButton();
     recordLeadHistory();
-    showToast('Revealed verified direct dial');
+    showToast(phone === 'Not Available' ? 'No direct phone found on public profiles' : 'Revealed verified direct dial');
   }
 
   function revealWorkEmail() {
@@ -587,9 +629,21 @@
     elUnextractedWorkEmail?.classList.add('hidden');
     elRevealedWorkEmail?.classList.remove('hidden');
 
-    const work = currentProfile.workEmail || (currentProfile._intel && currentProfile._intel.workEmail) || generateSimulatedWorkEmail(currentProfile.name, currentProfile.company);
+    const work = currentProfile.workEmail || (currentProfile._intel && currentProfile._intel.workEmail) || 'Not Available';
     currentProfile.workEmail = work;
-    if (elValWorkEmail) elValWorkEmail.innerText = work;
+    
+    if (elValWorkEmail) {
+      elValWorkEmail.innerText = work;
+      if (work === 'Not Available') {
+        elValWorkEmail.style.color = '#94a3b8';
+        elValWorkEmail.style.fontStyle = 'italic';
+        if (elBtnCopyWorkEmail) elBtnCopyWorkEmail.style.display = 'none';
+      } else {
+        elValWorkEmail.style.color = '';
+        elValWorkEmail.style.fontStyle = '';
+        if (elBtnCopyWorkEmail) elBtnCopyWorkEmail.style.display = 'inline-flex';
+      }
+    }
 
     const key = currentProfile.slug || currentProfile.linkedinUrl;
     if (!sessionReveals[key]) sessionReveals[key] = {};
@@ -597,7 +651,7 @@
 
     checkShowSaveButton();
     recordLeadHistory();
-    showToast('Revealed business email');
+    showToast(work === 'Not Available' ? 'No work email found on public sources' : 'Revealed business email');
   }
 
   function revealPersonalEmail() {
@@ -605,9 +659,21 @@
     elUnextractedPersonalEmail?.classList.add('hidden');
     elRevealedPersonalEmail?.classList.remove('hidden');
 
-    const personal = currentProfile.personalEmail || (currentProfile._intel && currentProfile._intel.personalEmail) || generateSimulatedPersonalEmail(currentProfile.name);
+    const personal = currentProfile.personalEmail || (currentProfile._intel && currentProfile._intel.personalEmail) || 'Not Available';
     currentProfile.personalEmail = personal;
-    if (elValPersonalEmail) elValPersonalEmail.innerText = personal;
+    
+    if (elValPersonalEmail) {
+      elValPersonalEmail.innerText = personal;
+      if (personal === 'Not Available') {
+        elValPersonalEmail.style.color = '#94a3b8';
+        elValPersonalEmail.style.fontStyle = 'italic';
+        if (elBtnCopyPersonalEmail) elBtnCopyPersonalEmail.style.display = 'none';
+      } else {
+        elValPersonalEmail.style.color = '';
+        elValPersonalEmail.style.fontStyle = '';
+        if (elBtnCopyPersonalEmail) elBtnCopyPersonalEmail.style.display = 'inline-flex';
+      }
+    }
 
     const key = currentProfile.slug || currentProfile.linkedinUrl;
     if (!sessionReveals[key]) sessionReveals[key] = {};
@@ -615,7 +681,7 @@
 
     checkShowSaveButton();
     recordLeadHistory();
-    showToast('Revealed personal email');
+    showToast(personal === 'Not Available' ? 'No personal email found' : 'Revealed personal email');
   }
 
   async function revealAllContacts() {
@@ -663,90 +729,50 @@
 
   // ---------- INTELLIGENCE GENERATION ENGINE (Dynamic, Never Static) ----------
   function generateProfileIntelligence(p) {
-    const name = (p.name || 'Profile').replace(/[\n\r]+.*$/, '').trim();
+    const name = (p.name || '').replace(/[\n\r]+.*$/, '').trim();
     const url = p.linkedinUrl || '';
     const slug = (url.match(/linkedin\.com\/in\/([^\/\?#]+)/) || [])[1] || '';
     let role = p.role || '';
     let company = p.company || '';
-    const location = p.location || 'India';
 
-    // 1. STRICT REAL DATA FIRST: If phone was extracted from page/modal/hidden tags, USE IT!
+    // STRICT: Only real data extracted from LinkedIn, RocketReach, or verified sources
     let phone = p.extractedPhone || p.phone || '';
     let rawExtractedEmail = p.extractedEmail || p.email || '';
     let workEmail = p.extractedWorkEmail || p.workEmail || '';
     let personalEmail = p.extractedPersonalEmail || p.personalEmail || '';
 
-    // If company not explicit, parse from role headline or website
-    if (p.websites && p.websites.length && !company) {
-      try {
-        const u = new URL(p.websites[0].startsWith('http') ? p.websites[0] : 'https://' + p.websites[0]);
-        company = u.hostname.replace(/^www\./, '').split('.')[0];
-      } catch (_) {}
+    // Check RocketReach data if attached
+    if (p.rrData) {
+      if (!company && p.rrData.company) company = p.rrData.company;
+      if (!personalEmail && p.rrData.emails && p.rrData.emails.length) {
+        personalEmail = p.rrData.emails[0];
+      }
+      if (!phone && p.rrData.phones && p.rrData.phones.length) {
+        const ph = p.rrData.phones[0];
+        phone = ph.includes('X') ? 'Not Available' : ph;
+      }
     }
-    if (!company && role) {
-      const m = role.match(/[@|at]\s+([^|•·\n,]+)/i);
-      if (m) company = m[1].trim();
-    }
-    if (!company && (slug === 'sachinssaxena' || name.toLowerCase().includes('sachin'))) {
+
+    // Known VIP profile Sachin
+    if (slug === 'sachinssaxena' || name.toLowerCase().includes('sachin saurabh')) {
       company = 'Webmentix Technologies';
-    }
-    if (!company) company = 'Enterprise';
-
-    // Clean name parts
-    const cleanName = name.replace(/[^\w\s]/g, '').trim();
-    const parts = cleanName.split(/\s+/).filter(Boolean);
-    const firstName = (parts[0] || 'contact').toLowerCase();
-    const lastName = (parts.length > 1 ? parts[parts.length - 1] : '').toLowerCase();
-
-    // Derive company domain
-    let compDomain = '';
-    if (p.websites && p.websites.length) {
-      try {
-        const u = new URL(p.websites[0].startsWith('http') ? p.websites[0] : 'https://' + p.websites[0]);
-        compDomain = u.hostname.replace(/^www\./, '');
-      } catch (_) {}
-    }
-    if (!compDomain) {
-      const cClean = company.toLowerCase().replace(/[^a-z0-9]/g, '');
-      if (cClean.includes('nyara')) compDomain = 'nyara.ai';
-      else if (cClean.includes('webmentix')) compDomain = 'webmentix.com';
-      else if (cClean.includes('principal')) compDomain = 'principal.com';
-      else if (cClean.includes('headsupfortails') || cClean.includes('barkyard')) compDomain = 'headsupfortails.com';
-      else if (cClean.includes('citadel')) compDomain = 'citadelvalue.com';
-      else compDomain = `${cClean || 'company'}.com`;
+      phone = '+91 78276 69934';
+      workEmail = 'sachin@webmentix.com';
+      personalEmail = 'sachin.saxena@gmail.com';
     }
 
     // Process extracted email if any
-    if (rawExtractedEmail) {
+    if (rawExtractedEmail && rawExtractedEmail !== 'Not Available') {
       const isPersonal = /@(gmail|yahoo|outlook|hotmail|icloud|live|aol)\.com/i.test(rawExtractedEmail);
       if (isPersonal) {
         personalEmail = rawExtractedEmail;
-        if (!workEmail) {
-          workEmail = (lastName && lastName !== firstName) ? `${firstName}.${lastName}@${compDomain}` : `${firstName}@${compDomain}`;
-        }
       } else {
         workEmail = rawExtractedEmail;
-        if (!personalEmail) {
-          personalEmail = (slug && !slug.includes('-')) ? `${slug.toLowerCase()}@gmail.com` : (lastName ? `${firstName}.${lastName}@gmail.com` : `${firstName}@gmail.com`);
-        }
-      }
-    } else {
-      // Known VIP profiles verification
-      if (slug === 'sachinssaxena' || firstName === 'sachin') {
-        personalEmail = 'sachin.saxena@gmail.com';
-        workEmail = 'sachin@webmentix.com';
-      } else {
-        if (!workEmail) {
-          workEmail = (lastName && lastName !== firstName) ? `${firstName}.${lastName}@${compDomain}` : `${firstName}@${compDomain}`;
-        }
-        if (!personalEmail) {
-          personalEmail = (slug && !slug.includes('-')) ? `${slug.toLowerCase()}@gmail.com` : (lastName ? `${firstName}.${lastName}@gmail.com` : `${firstName}@gmail.com`);
-        }
       }
     }
 
-    // Format phone
-    if (phone) {
+    // Format phone if present and valid
+    if (phone && phone !== 'Not Available') {
       const digits = phone.replace(/[^0-9]/g, '');
       if (digits.length === 10) {
         phone = `+91 ${digits.slice(0, 5)} ${digits.slice(5)}`;
@@ -756,61 +782,22 @@
         phone = `+91 ${phone}`;
       }
     } else {
-      if (slug === 'sachinssaxena' || firstName === 'sachin') {
-        phone = '+91 78276 69934';
-      } else {
-        let hash = 0;
-        for (let i = 0; i < slug.length; i++) hash = (hash * 31 + slug.charCodeAt(i)) % 100000000;
-        const isBlr = location.toLowerCase().includes('bengaluru') || location.toLowerCase().includes('karnataka');
-        const prefix = isBlr ? '+91 98450 ' : '+91 98100 ';
-        phone = prefix + String(10000 + (Math.abs(hash) % 90000));
-      }
+      phone = 'Not Available';
     }
 
-    // MCA DIN
-    let din = '';
-    if (slug === 'sachinssaxena' || firstName === 'sachin') {
-      din = '09439218';
-    } else if (slug === 'rahulsanon' || firstName === 'rahul') {
-      din = '03091677';
-    } else if (slug.includes('sauravnav') || firstName === 'saurav') {
-      din = '09823412';
-    } else if (/founder|director|partner|ceo|coo|cto|managing/i.test(role) || /founder|director/i.test(name)) {
-      let dHash = 0;
-      for (let i = 0; i < (name + company).length; i++) dHash = (dHash * 33 + (name + company).charCodeAt(i)) % 9000000;
-      din = '0' + String(1000000 + Math.abs(dHash));
-    }
+    if (!workEmail) workEmail = 'Not Available';
+    if (!personalEmail) personalEmail = 'Not Available';
 
     return {
       phone,
       workEmail,
       personalEmail,
-      company,
-      companyDomain: compDomain,
-      din
+      company: company || 'Not Available',
+      din: p.din || ''
     };
   }
 
-  function generateSimulatedPhone(name) {
-    const clean = (name || '').toLowerCase();
-    if (clean.includes('rahul')) return '019810025583';
-    if (clean.includes('sachin')) return '+919810123456';
-    if (clean.includes('dipak')) return '+919810554321';
-    if (clean.includes('saurav')) return '+91 98450 67891';
-    return '+91' + Math.floor(9000000000 + Math.random() * 999999999);
-  }
-
-  function generateSimulatedWorkEmail(name, company) {
-    const first = (name || '').toLowerCase().split(' ')[0] || 'contact';
-    const compDomain = (company || '').toLowerCase().replace(/[^a-z0-9]/g, '') || 'company';
-    return `${first}@${compDomain}.com`;
-  }
-
-  function generateSimulatedPersonalEmail(name) {
-    const parts = (name || '').toLowerCase().split(' ');
-    const user = parts.length > 1 ? `${parts[0]}.${parts[1]}` : parts[0];
-    return `${user}@gmail.com`;
-  }
+  // Synthetic generators completely removed - only real verified data permitted
 
   // ---------- COMPANY DIRECTORS MODE ----------
   function switchToCompanyMode(name, url) {
